@@ -21,6 +21,7 @@ import openfl.text.TextFormat;
 @:access(openfl.display.BitmapData)
 @:access(openfl.display.Graphics)
 @:access(openfl.text.TextField)
+@:access(openfl._internal.text.TextEngine)
 
 
 class CairoTextField {
@@ -264,6 +265,15 @@ class CairoTextField {
                 } else {
                   
                   end = textField.getCharBoundaries (selectionEnd);
+                  if (groupEnd == selectionEnd)
+                  {
+                    textEngine.__textLayout.text = null;
+                    textEngine.__textLayout.font = font;
+                    if (group.format.size != null) textEngine.__textLayout.size = group.format.size;
+                    textEngine.__textLayout.text = " ";
+                    
+                    end.x += textEngine.__textLayout.positions[0].advance.x;
+                  }
                   
                 }
                 
