@@ -751,7 +751,7 @@ class TextEngine {
 			
 			if ((breakIndex > -1) && (spaceIndex == -1 || breakIndex < spaceIndex) && (formatRange.end >= breakIndex)) {
 				
-				layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, breakIndex);
+				layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, breakIndex, textField.__caretToCursorIndex(textIndex), textField.__caretToCursorIndex(breakIndex));
 				layoutGroup.advances = getAdvances (text, textIndex, breakIndex);
 				layoutGroup.offsetX = offsetX;
 				layoutGroup.ascent = ascent;
@@ -854,7 +854,7 @@ class TextEngine {
 							
 						}
 						
-						layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, spaceIndex);
+						layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, spaceIndex, textField.__caretToCursorIndex(textIndex), textField.__caretToCursorIndex(spaceIndex));
 						layoutGroup.advances = advances;
 						layoutGroup.offsetX = offsetX;
 						layoutGroup.ascent = ascent;
@@ -878,7 +878,7 @@ class TextEngine {
 							if (formatRange.format.align != JUSTIFY) {
 								
 								layoutGroup.endIndex = spaceIndex;
-								
+								layoutGroup.endIndexUtf = textField.__caretToCursorIndex(text, spaceIndex);
 							}
 							
 							layoutGroup.advances.push (spaceWidth);
@@ -886,7 +886,7 @@ class TextEngine {
 							
 						} else if (layoutGroup == null || lineFormat.align == JUSTIFY) {
 							
-							layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, spaceIndex);
+							layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, spaceIndex, textField.__caretToCursorIndex(textIndex), textField.__caretToCursorIndex(spaceIndex));
 							layoutGroup.advances = advances;
 							layoutGroup.offsetX = offsetX;
 							layoutGroup.ascent = ascent;
@@ -904,6 +904,7 @@ class TextEngine {
 						} else {
 							
 							layoutGroup.endIndex = spaceIndex;
+              layoutGroup.endIndexUtf = textField.__caretToCursorIndex(text, spaceIndex);
 							layoutGroup.advances = layoutGroup.advances.concat (advances);
 							layoutGroup.width += marginRight + widthValue;
 							
@@ -944,7 +945,7 @@ class TextEngine {
 					
 				}
 				
-				layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, formatRange.end);
+				layoutGroup = new TextLayoutGroup (formatRange.format, textIndex, formatRange.end, textField.__caretToCursorIndex(textIndex), textField.__caretToCursorIndex(formatRange.end));
 				layoutGroup.advances = getAdvances (text, textIndex, formatRange.end);
 				layoutGroup.offsetX = offsetX;
 				layoutGroup.ascent = ascent;

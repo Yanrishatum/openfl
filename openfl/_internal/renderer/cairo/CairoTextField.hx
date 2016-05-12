@@ -1,6 +1,7 @@
 package openfl._internal.renderer.cairo;
 
 
+import haxe.Utf8;
 import lime.graphics.cairo.Cairo;
 import lime.graphics.cairo.CairoAntialias;
 import lime.graphics.cairo.CairoFontFace;
@@ -202,9 +203,12 @@ class CairoTextField {
 					
 					if (textField.__caretIndex > -1 && textEngine.selectable) {
 						
+            var groupStart:Int = group.startIndexUtf;
+            var groupEnd:Int = group.endIndexUtf;
+            
 						if (textField.__selectionIndex == textField.__caretIndex) {
 							
-							if (textField.__showCursor && group.startIndex <= textField.__caretIndex && group.endIndex >= textField.__caretIndex) {
+							if (textField.__showCursor && groupStart <= textField.__caretIndex && groupEnd >= textField.__caretIndex) {
 								
 								advance = 0.0;
 								
@@ -215,58 +219,64 @@ class CairoTextField {
 									
 								}
 								
-								cairo.moveTo (Math.floor (group.offsetX + advance) + 0.5, group.offsetY + 0.5);
+								cairo.moveTo (Math.floor (group.offsetX + scrollX + advance) + 0.5, group.offsetY + 0.5);
 								cairo.lineWidth = 1;
 								cairo.lineTo (Math.floor (group.offsetX + advance) + 0.5, group.offsetY + group.height - 1);
 								cairo.stroke ();
 								
 							}
 							
-						} else if ((group.startIndex <= textField.__caretIndex && group.endIndex >= textField.__caretIndex) || (group.startIndex <= textField.__selectionIndex && group.endIndex >= textField.__selectionIndex)) {
+						} else {//if ((groupStart <= textField.__caretIndex && groupEnd >= textField.__caretIndex) || (groupStart <= textField.__selectionIndex && groupEnd >= textField.__selectionIndex)) {
 							
 							var selectionStart = Std.int (Math.min (textField.__selectionIndex, textField.__caretIndex));
 							var selectionEnd = Std.int (Math.max (textField.__selectionIndex, textField.__caretIndex));
-							
-							if (group.startIndex > selectionStart) {
-								
-								selectionStart = group.startIndex;
-								
-							}
-							
-							if (group.endIndex < selectionEnd) {
-								
-								selectionEnd = group.endIndex;
-								
-							}
-							
-							var start, end;
-							
-							start = textField.getCharBoundaries (selectionStart);
-							
-							if (selectionEnd >= textEngine.text.length) {
-								
-								end = textField.getCharBoundaries (textEngine.text.length - 1);
-								end.x += end.width + 2;
-								
-							} else {
-								
-								end = textField.getCharBoundaries (selectionEnd);
-								
-							}
-							
-							if (start != null && end != null) {
-								
-								cairo.setSourceRGB (0, 0, 0);
-								cairo.rectangle (start.x, start.y, end.x - start.x, group.height);
-								cairo.fill ();
-								cairo.setSourceRGB (1, 1, 1);
-								
-								// TODO: draw only once
-								
-								cairo.moveTo (scrollX + start.x, group.offsetY + group.ascent + scrollY);
-								cairo.showText (text.substring (selectionStart, selectionEnd));
-								
-							}
+              
+              if (selectionStart <= groupEnd && selectionEnd >= groupStart)
+              {
+                
+                if (groupStart > selectionStart) {
+                  
+                  selectionStart = groupStart;
+                  
+                }
+                
+                if (group.endIndex < selectionEnd) {
+                  
+                  selectionEnd = groupEnd;
+                  
+                }
+                
+                var start, end;
+                
+                start = textField.getCharBoundaries (selectionStart);
+                
+                if (selectionEnd >= Utf8.length(textEngine.text)) {
+                  
+                  end = textField.getCharBoundaries (Utf8.length(textEngine.text) - 1);
+                  end.x += end.width + 2;
+                  
+                } else {
+                  
+                  end = textField.getCharBoundaries (selectionEnd);
+                  
+                }
+                
+                if (start != null && end != null) {
+                  
+                  cairo.setSourceRGB (0, 0, 0);
+                  cairo.rectangle (start.x, start.y, end.x - start.x, group.height);
+                  cairo.fill ();
+                  cairo.setSourceRGB (1, 1, 1);
+                  
+                  // TODO: draw only once
+                  
+                  cairo.moveTo (scrollX + start.x, group.offsetY + group.ascent + scrollY);
+                  cairo.showText (text.substring (textField.__cursorToCaretIndex(selectionStart), textField.__cursorToCaretIndex(selectionEnd)));
+                  
+                }
+                
+              }
+              
 							
 						}
 						

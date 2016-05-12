@@ -2,6 +2,7 @@ package openfl.text; #if !openfl_legacy
 
 
 import haxe.Timer;
+import haxe.Utf8;
 import lime.system.Clipboard;
 import lime.ui.KeyCode;
 import lime.ui.KeyModifier;
@@ -35,6 +36,8 @@ import js.html.DivElement;
 
 class TextField extends InteractiveObject {
 	
+  private static var ctrlSelectionReg:EReg = ~/(([\s\[\]{}()`~!@#$%^&*\-=+"\\\/|?.,<]+)\b)/m;
+  private static var ctrlSelectionLastReg:EReg = ~/(([\s\[\]{}()`~!@#$%^&*\-=+"\\\/|?.,<]+)\b)([\w']+)$/;
 	
 	private static var __defaultTextFormat:TextFormat;
 	
@@ -93,6 +96,7 @@ class TextField extends InteractiveObject {
 		super ();
 		
 		__caretIndex = -1;
+    __selectionIndex = 0;
 		__graphics = new Graphics ();
 		__textEngine = new TextEngine (this);
 		__layoutDirty = true;
@@ -452,7 +456,7 @@ class TextField extends InteractiveObject {
 		
 		replaceText (startIndex, endIndex, value);
 		
-		__caretIndex = startIndex + value.length;
+		__caretIndex = startIndex + Utf8.length(value);
 		__selectionIndex = __caretIndex;
 		
 	}
@@ -461,7 +465,9 @@ class TextField extends InteractiveObject {
 	public function replaceText (beginIndex:Int, endIndex:Int, newText:String):Void {
 		
 		if (endIndex < beginIndex || beginIndex < 0 || endIndex > __textEngine.text.length || newText == null) return;
-		
+		beginIndex = __cursorToCaretIndex(beginIndex);
+    endIndex = __cursorToCaretIndex(endIndex);
+    
 		__textEngine.text = __textEngine.text.substring (0, beginIndex) + newText + __textEngine.text.substring (endIndex);
 		
 		var offset = newText.length - (endIndex - beginIndex);
@@ -606,12 +612,12 @@ class TextField extends InteractiveObject {
 						if (x <= group.offsetX + advance) {
 							
 							if (x <= group.offsetX + (advance - group.advances[i]) + (group.advances[i] / 2)) {
-								
-								return group.startIndex + i;
+                
+								return __caretToCursorIndex(group.startIndex) + i;
 								
 							} else {
 								
-								return (group.startIndex + i < group.endIndex) ? group.startIndex + i + 1 : group.endIndex;
+								return (__caretToCursorIndex(group.startIndex) + i < __caretToCursorIndex(group.endIndex)) ? __caretToCursorIndex(group.startIndex) + i + 1 : __caretToCursorIndex(group.endIndex);
 								
 							}
 							
@@ -619,7 +625,7 @@ class TextField extends InteractiveObject {
 						
 					}
 					
-					return group.endIndex;
+					return __caretToCursorIndex(group.endIndex);
 					
 				}
 				
@@ -627,7 +633,7 @@ class TextField extends InteractiveObject {
 			
 		}
 		
-		return __textEngine.text.length;
+		return Utf8.length(__textEngine.text);
 		
 	}
 	
@@ -757,7 +763,7 @@ class TextField extends InteractiveObject {
 		
 		if (__caretIndex < 0) {
 			
-			__caretIndex = __textEngine.text.length;
+			__caretIndex = Utf8.length(__textEngine.text);
 			__selectionIndex = __caretIndex;
 			
 		}
@@ -888,7 +894,15 @@ class TextField extends InteractiveObject {
 		
 	}
 	
+  private inline function __cursorToCaretIndex(idx:Int):Int
+  {
+    return Utf8.sub(__textEngine.text, 0, idx).length;
+  }
 	
+  private inline function __caretToCursorIndex(idx:Int):Int
+  {
+    return Utf8.length(__textEngine.text.substr(0, idx));
+  }
 	
 	
 	// Getters & Setters
@@ -1733,7 +1747,7 @@ class TextField extends InteractiveObject {
 		switch (key) {
 			
 			case BACKSPACE:
-				
+        
 				if (__selectionIndex == __caretIndex && __caretIndex > 0) {
 					
 					__selectionIndex = __caretIndex - 1;
@@ -1751,7 +1765,7 @@ class TextField extends InteractiveObject {
 			
 			case DELETE:
 				
-				if (__selectionIndex == __caretIndex && __caretIndex < __textEngine.text.length) {
+				if (__selectionIndex == __caretIndex && __caretIndex < Utf8.length(__textEngine.text)) {
 					
 					__selectionIndex = __caretIndex + 1;
 					
@@ -1772,7 +1786,18 @@ class TextField extends InteractiveObject {
 					
 					if (__caretIndex > 0) {
 						
-						__caretIndex--;
+            if (modifier.ctrlKey)
+            {
+              if (ctrlSelectionLastReg.matchSub(__textEngine.text, 0, __cursorToCaretIndex(__caretIndex)))
+              {
+                __caretIndex = __caretToCursorIndex(ctrlSelectionLastReg.matchedPos().pos + ctrlSelectionLastReg.matched(1).length);
+              }
+              else __caretIndex = 0;
+            }
+            else
+            {
+              __caretIndex--;
+            }
 						
 					}
 					
@@ -1782,7 +1807,18 @@ class TextField extends InteractiveObject {
 						
 						if (__caretIndex > 0) {
 							
-							__caretIndex--;
+              if (modifier.ctrlKey)
+              {
+                if (ctrlSelectionLastReg.matchSub(__textEngine.text, 0, __cursorToCaretIndex(__caretIndex)))
+                {
+                  __caretIndex = __caretToCursorIndex(ctrlSelectionLastReg.matchedPos().pos + ctrlSelectionLastReg.matched(1).length);
+                }
+                else __caretIndex = 0;
+              }
+              else
+              {
+                __caretIndex--;
+              }
 							
 						}
 						
@@ -1803,9 +1839,20 @@ class TextField extends InteractiveObject {
 				
 				if (modifier.shiftKey) {
 					
-					if (__caretIndex < __textEngine.text.length) {
+					if (__caretIndex < Utf8.length(__textEngine.text)) {
 						
-						__caretIndex++;
+            if (modifier.ctrlKey)
+            {
+              if (ctrlSelectionReg.matchSub(__textEngine.text, __cursorToCaretIndex(__caretIndex)))
+              {
+                __caretIndex = __caretToCursorIndex(ctrlSelectionReg.matchedPos().pos + ctrlSelectionReg.matched(1).length);
+              }
+              else __caretIndex = Utf8.length(__textEngine.text);
+            }
+            else
+            {
+              __caretIndex++;
+            }
 						
 					}
 					
@@ -1813,10 +1860,19 @@ class TextField extends InteractiveObject {
 					
 					if (__selectionIndex == __caretIndex) {
 						
-						if (__caretIndex < __textEngine.text.length) {
-							
-							__caretIndex++;
-							
+						if (__caretIndex < Utf8.length(__textEngine.text)) {
+              if (modifier.ctrlKey)
+              {
+                if (ctrlSelectionReg.matchSub(__textEngine.text, __cursorToCaretIndex(__caretIndex)))
+                {
+                  __caretIndex = __caretToCursorIndex(ctrlSelectionReg.matchedPos().pos + ctrlSelectionReg.matched(1).length);
+                }
+                else __caretIndex = Utf8.length(__textEngine.text);
+              }
+              else
+              {
+                __caretIndex++;
+              }
 						}
 						
 					} else {
@@ -1834,17 +1890,17 @@ class TextField extends InteractiveObject {
 			
 			case C:
 				
-				if (modifier == #if mac KeyModifier.LEFT_META #else KeyModifier.LEFT_CTRL #end || modifier == #if mac KeyModifier.RIGHT_META #else KeyModifier.RIGHT_CTRL #end) {
+				if (#if mac modifier.metaKey #else modifier.ctrlKey #end) {
 					
-					Clipboard.text = __textEngine.text.substring (__caretIndex, __selectionIndex);
+					Clipboard.text = __textEngine.text.substring (__cursorToCaretIndex(__caretIndex), __cursorToCaretIndex(__selectionIndex));
 					
 				}
 			
 			case X:
 				
-				if (modifier == #if mac KeyModifier.LEFT_META #else KeyModifier.LEFT_CTRL #end || modifier == #if mac KeyModifier.RIGHT_META #else KeyModifier.RIGHT_CTRL #end) {
+				if (#if mac modifier.metaKey #else modifier.ctrlKey #end) {
 					
-					Clipboard.text = __textEngine.text.substring (__caretIndex, __selectionIndex);
+					Clipboard.text = __textEngine.text.substring (__cursorToCaretIndex(__caretIndex), __cursorToCaretIndex(__selectionIndex));
 					
 					if (__caretIndex != __selectionIndex) {
 						
@@ -1857,7 +1913,7 @@ class TextField extends InteractiveObject {
 			
 			case V:
 				
-				if (modifier == #if mac KeyModifier.LEFT_META #else KeyModifier.LEFT_CTRL #end || modifier == #if mac KeyModifier.RIGHT_META #else KeyModifier.RIGHT_CTRL #end) {
+				if (#if mac modifier.metaKey #else modifier.ctrlKey #end) {
 					
 					var text = Clipboard.text;
 					
@@ -1877,6 +1933,24 @@ class TextField extends InteractiveObject {
 					__textEngine.textFormatRanges[__textEngine.textFormatRanges.length - 1].end = __textEngine.text.length;
 				}
 			
+      case A: // Select all
+        
+        if (#if mac modifier.metaKey #else modifier.ctrlKey #end)
+        {
+          __caretIndex = 0;
+          __selectionIndex = Utf8.length(__textEngine.text);
+          __stopCursorTimer ();
+          __startCursorTimer ();
+        }
+      case RETURN: // New line.
+        
+        if (__selectionIndex == __caretIndex && __caretIndex < Utf8.length(__textEngine.text))
+        {
+          __selectionIndex = __caretIndex + 1;
+        }
+        
+        replaceSelectedText("\n");
+        
 			default:
 			
 		}
