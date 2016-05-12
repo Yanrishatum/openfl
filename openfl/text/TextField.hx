@@ -3,6 +3,7 @@ package openfl.text; #if !openfl_legacy
 
 import haxe.Timer;
 import haxe.Utf8;
+import lime.graphics.cairo.CairoAntialias;
 import lime.system.Clipboard;
 import lime.ui.KeyCode;
 import lime.ui.KeyModifier;
@@ -1123,7 +1124,17 @@ class TextField extends InteractiveObject {
 			//__layoutDirty = true;
 			//
 		//}
-		
+		if (__cairo != null)
+    {
+      var opt = __cairo.fontOptions;
+      switch (value)
+      {
+        case GridFitType.NONE: opt.antialias = CairoAntialias.GOOD;
+        case GridFitType.PIXEL: opt.antialias = CairoAntialias.NONE;
+        case GridFitType.SUBPIXEL: opt.antialias = CairoAntialias.SUBPIXEL;
+      }
+      __cairo.fontOptions = opt;
+    }
 		return __textEngine.gridFitType = value;
 		
 	}

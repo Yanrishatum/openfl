@@ -878,7 +878,7 @@ class TextEngine {
 							if (formatRange.format.align != JUSTIFY) {
 								
 								layoutGroup.endIndex = spaceIndex;
-								layoutGroup.endIndexUtf = textField.__caretToCursorIndex(text, spaceIndex);
+								layoutGroup.endIndexUtf = textField.__caretToCursorIndex(spaceIndex);
 							}
 							
 							layoutGroup.advances.push (spaceWidth);
@@ -904,7 +904,7 @@ class TextEngine {
 						} else {
 							
 							layoutGroup.endIndex = spaceIndex;
-              layoutGroup.endIndexUtf = textField.__caretToCursorIndex(text, spaceIndex);
+              layoutGroup.endIndexUtf = textField.__caretToCursorIndex(spaceIndex);
 							layoutGroup.advances = layoutGroup.advances.concat (advances);
 							layoutGroup.width += marginRight + widthValue;
 							

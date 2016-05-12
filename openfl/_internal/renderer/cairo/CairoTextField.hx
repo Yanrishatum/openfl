@@ -14,6 +14,7 @@ import openfl._internal.renderer.RenderSession;
 import openfl._internal.text.TextEngine;
 import openfl.display.BitmapData;
 import openfl.geom.Rectangle;
+import openfl.text.GridFitType;
 import openfl.text.TextField;
 import openfl.text.TextFormat;
 
@@ -78,7 +79,12 @@ class CairoTextField {
 				
 				options.hintStyle = CairoHintStyle.DEFAULT;
 				options.hintMetrics = CairoHintMetrics.OFF;
-				options.antialias = CairoAntialias.GOOD;
+        switch (textEngine.gridFitType)
+        {
+          case GridFitType.SUBPIXEL: options.antialias = CairoAntialias.SUBPIXEL;
+          case GridFitType.PIXEL: options.antialias = CairoAntialias.NONE;
+          case GridFitType.NONE: options.antialias = CairoAntialias.GOOD;
+        }
 				
 			}
 			
